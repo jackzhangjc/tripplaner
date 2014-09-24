@@ -1,0 +1,60 @@
+body
+{
+	background-color:rgba(105,181,251,0.49);
+
+	font-family: Arial, 'Lucida Sans Unicode';
+	font-size: 87.5%;
+	line-height: 1.5;
+	text-align: left;
+	
+}
+
+#map-canvas {
+	width: 60%; height: 600px;
+	
+}
+
+#pano {
+	position:absolute; left:800px; top: 100px; width: 400px; height: 300px;
+}
+
+#gallary {
+	position:absolute; left:800px; top: 450px; width: 400px; height: 300px;
+}
+
+#pac-input {
+        background-color: #fff;
+        padding: 0 11px 0 13px;
+        width: 400px;
+        font-family: Roboto;
+        font-size: 15px;
+        font-weight: 300;
+        text-overflow: ellipsis;
+      }
+
+      #pac-input:focus {
+        border-color: #4d90fe;
+        margin-left: -1px;
+        padding-left: 14px;  /* Regular padding-left + 1. */
+        width: 401px;
+      }
+      
+      #pac-input-dest {
+        background-color: #fff;
+        padding: 0 11px 0 13px;
+        width: 400px;
+        font-family: Roboto;
+        font-size: 15px;
+        font-weight: 300;
+        text-overflow: ellipsis;
+      }
+
+      #pac-input-dest:focus {
+        border-color: #4d90fe;
+        margin-left: -1px;
+        padding-left: 14px;  /* Regular padding-left + 1. */
+        width: 401px;
+      }
+    
+
+

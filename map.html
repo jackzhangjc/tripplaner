@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Street View service</title>
+    <style>
+      html, body, #map-canvas {
+        height: 100%;
+        margin: 0px;
+        padding: 0px
+      }
+    </style>
+    <link rel="stylesheet" href="mysite.css" type="test/css">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2Uca9m25ft2CqsrSzJbrCbUBo_FmLZZk&libraries=places"></script>
+      <script src='http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js'></script>
+		<script src='http://cdnjs.cloudflare.com/ajax/libs/flot/0.8.2/jquery.flot.min.js'></script>
+		<script src='http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.6.0/underscore-min.js'></script>
+		<script src='./myo.js'></script>
+		<script src='./myo.experimental.js'></script>
+    <script>
+    
+    var panorama;
+    var map
+    var marker;
+    var cameraNum;
+    var directionsService = new google.maps.DirectionsService();
+    var directionsDisplay;
+    var markerArray = [];
+    var wave_in=0;
+    var wave_out=0;
+function initialize() {
+directionsDisplay = new google.maps.DirectionsRenderer();
+  var fenway = new google.maps.LatLng(42.345573, -71.098326);
+  var mapOptions = {
+    center: fenway,
+    zoom: 18,
+    mapTypeId: google.maps.MapTypeId.HYBRID,
+    streetViewControl:false
+    
+  };
+  
+  var input = /** @type {HTMLInputElement} */(
+      document.getElementById('pac-input'));
+	  var input2 = /** @type {HTMLInputElement} */(
+      document.getElementById('pac-input-dest'));
+
+
+  map = new google.maps.Map(
+      document.getElementById('map-canvas'), mapOptions);
+      directionsDisplay.setMap(map);
+  var panoramaOptions = {
+    position: fenway,
+    pov: {
+      heading: 34,
+      pitch: 10
+    }
+  };
+  	  var autocomplete = new google.maps.places.Autocomplete(input);
+	  autocomplete.bindTo('bounds', map);
+	  
+	  var autocomplete2 = new google.maps.places.Autocomplete(input2);
+	  autocomplete2.bindTo('bounds', map);
+	  
+  panorama = new google.maps.StreetViewPanorama(document.getElementById('pano'), panoramaOptions);
+  map.setStreetView(panorama);
+              listen1 = google.maps.event.addListener(map, 'click', function (event) {
+                placeMarker(event.latLng);
+                setStreetView(event.latLng);
+                //placePanoMarker(event.latLng);
+                //diaplayAddress(event.latLng);
+            });
+            
+
+            
+              google.maps.event.addListener(panorama, 'position_changed', function () {
+                var lookTo = marker.getPosition();
+                var panoCenter = panorama.getPosition();
+                var heading = google.maps.geometry.spherical.computeHeading(panoCenter, lookTo);
+                panorama.setPov({
+                    heading: heading,
+                    pitch: 0
+                });
+                panorama.setVisible(true);
+            });
+            stepDisplay = new google.maps.InfoWindow({
+        content: "",
+        //maxWidth: 200 ,
+        //maxHeight: 400
+    });
+    
+            
+
+}
+
+	google.maps.event.addDomListener(window, 'load', initialize);
+
+        function setStreetView(location) {
+            panorama.setPosition(location);
+            panorama.setZoom(1);
+            panorama.setVisible(false);
+
+        }
+
+        function placeMarker(location) {
+                
+            if (marker == undefined) {
+                marker = new google.maps.Marker({
+                    map: map,
+                    draggable: true,
+                    animation: google.maps.Animation.DROP,
+                    position: location
+                });
+                google.maps.event.addListener(marker, 'dragend', function () {
+                    setStreetView(marker.getPosition());
+                    placePanoMarker(marker.getPosition());
+                    diaplayAddress(marker.getPosition());
+                });
+            } else {
+
+                marker.setPosition(location);
+            }
+        }
+        
+            function dragMap() {
+				map.setOptions({ draggableCursor: null });
+				google.maps.event.removeListener(listen2);
+				listen1 = google.maps.event.addListener(map, 'click', function (event) {
+            placeMarker(event.latLng);
+
+            setStreetView(event.latLng);
+            //placePanoMarker(event.latLng);
+            //diaplayAddress(event.latLng);
+        });
+        }
+        
+         function takePicture() {
+
+            var pitch = panorama.getPov().pitch;
+            var zoom = panorama.getPov().zoom;
+            //convert zoom to fov
+            var fov = 3.9018 * Math.pow(zoom, 2) - 42.432 * zoom + 123;
+            if (fov < 20) { fov = 20; }
+            if (fov > 120) { fov = 120; }
+            var heading = panorama.getPov().heading;
+            var location = panorama.getPosition();
+            var lat = location.lat();
+            var lng = location.lng();
+            //url of the google static image
+            var url = "http://maps.googleapis.com/maps/api/streetview?size=500x200&location=" +
+            lat + "," + lng + "&pitch=" + pitch + "&heading=" + heading + "&fov=" + fov +
+            "&sensor=false&key=AIzaSyD2Uca9m25ft2CqsrSzJbrCbUBo_FmLZZk";
+            var contentString = '<img border="0" src=' + url + ' width=400 height=300/>';
+            //create a button to display the picture as a thumbnail
+            var button = document.createElement("input");
+            button.id = cameraNum;
+            button.type = "image";
+            button.src = url;
+            button.height = 100;
+            button.width = 120;
+            //button.onclick = function () { openWin(this.id, url); return false; };
+            var img = new Image();
+            img.src = url;
+            //create a picture object and push it into the array
+            picture = new Object();
+            picture.BestImage = "false";
+            picture.Caption = "";
+            picture.Heading = heading;
+            //get the image date
+            //sv.getPanoramaByLocation(panorama.getPosition(), 50, function (streetViewpanoramaData, status) {
+              //  picture.ImageryDate=streetViewpanoramaData.imageDate+"-01";
+            //});
+            picture.Latitude = lat;
+            picture.Longitude = lng;
+            var url = "http://maps.googleapis.com/maps/api/streetview?size=1920x1080&location=" +
+            lat + "," + lng + "&pitch=" + pitch + "&heading=" + heading + "&fov=" + fov +
+            "&sensor=false&key=AIzaSyD2Uca9m25ft2CqsrSzJbrCbUBo_FmLZZk";
+            picture.URL = url;
+            picture.id = cameraNum;
+
+            picture.ImageType = "";
+            //pictures.push(picture);
+            cameraNum = cameraNum + 1;
+            //var json_text = JSON.stringify(pictures, null, 2);
+            //document.getElementById("<%= json.ClientID %>").value = json_text;
+
+            document.getElementById('gallary').appendChild(button);
+    }
+
+
+function calcRoute() {
+  for (var i = 0; i < markerArray.length; i++) {
+    markerArray[i].setMap(null);
+  }
+
+  // Now, clear the array itself.
+  markerArray = [];
+  var start = document.getElementById('pac-input').value;
+  var end = document.getElementById('pac-input-dest').value;
+  var request = {
+    origin: start,
+    destination: end,
+    travelMode: google.maps.TravelMode.DRIVING
+  };
+  directionsService.route(request, function(response, status) {
+    if (status == google.maps.DirectionsStatus.OK) {
+      directionsDisplay.setDirections(response);
+      showSteps(response)
+    }
+  });
+  
+  function showSteps(directionResult) {
+  // For each step, place a marker, and add the text to the marker's
+  // info window. Also attach the marker to an array so we
+  // can keep track of it and remove it when calculating new
+  // routes.
+  var myRoute = directionResult.routes[0].legs[0];
+
+  for (var i = 0; i < myRoute.steps.length; i++) {
+      var markerposition=myRoute.steps[i].start_point;
+      var marker = new google.maps.Marker({
+        position: markerposition,
+        map: map
+      });
+      //attachInstructionText(marker, myRoute.steps[i].instructions);
+      var html="<img src="+""
+      var url = "http://maps.googleapis.com/maps/api/streetview?size=500x200&location=" +
+            markerposition.lat() + "," + markerposition.lng() +
+            "&sensor=false&key=AIzaSyD2Uca9m25ft2CqsrSzJbrCbUBo_FmLZZk";
+            var contentString = '<div style="width:400px; height:450px">' +'<img border="0" src=' + url + ' width=400px height=350px/>'+myRoute.steps[i].instructions+'</div>';
+            
+      attachInstructionText(marker, contentString);
+      markerArray[i] = marker;
+  }
+}
+function attachInstructionText(marker, text) {
+  google.maps.event.addListener(marker, 'click', function() {
+    // Open an info window when the marker is clicked on,
+    // containing the text of the step.
+    stepDisplay.set
+    stepDisplay.setContent(text);
+    stepDisplay.open(map, marker);
+  });
+}
+
+
+}
+
+
+    </script>
+    
+    
+    
+    <script>
+    
+function difference(link) {
+
+    var diff = Math.abs(panorama.pov.heading % 360 - link.heading);
+    if(diff>180)
+       diff=Math.abs(360-diff);
+
+    return diff;
+
+}
+function moveForward() {
+  var curr;
+  for(i=0; i < panorama.links.length; i++) {
+    var differ = difference(panorama.links[i]);
+    if(curr == undefined) {
+      curr = panorama.links[i];
+    }
+
+    if(difference(curr) > difference(panorama.links[i])) {
+      curr = curr = panorama.links[i];
+    }
+  }
+  pano.setPano(curr.pano);
+}
+	Myo.start();
+	Myo.lock();
+
+	var loc_x, loc_y, lock = false
+
+	var his = [0,0,0];
+
+	hasPeak = function(){
+		return his[0] > his[1] && his[1] < his[2];
+	}
+
+
+	Myo.on('imu', function(data){
+
+		//lock = Math.abs(data.accelerometer.x) > 0.5
+
+
+		if(!lock){
+			loc_x = (50 -data.orientation.y * 100);
+			loc_y = ( data.orientation.z * 100  + 50);
+			
+			
+			//map.setCenter({lat: center.lat()+loc_x, lng: center.lng()+loc_y});
+			
+			//$('#pan_x').height(loc_x + '%');
+			//$('#pan_y').width( loc_y + '%');
+		}
+
+		his.push(data.gyroscope.z);
+		his = his.slice(1);
+
+		if(hasPeak() && data.gyroscope.z < -300 && smashHold){
+			showThing('SMASH');
+		}
+
+		if(hasPeak() && data.gyroscope.z < -100) console.log('dsfgdfg');
+
+
+		//if(data.accelerometer.z > data.accelerometer.y + 150) showThing('PUNCH');
+
+	});
+
+	showThing = function(text){
+
+		console.log(loc_x, loc_y);
+
+		$('#thing').show().css({
+			top  : loc_x * 5 -25,
+			left : loc_y * 5 -25
+		}).html(text)
+
+	}
+
+
+
+	var smashHold;
+	Myo.on('pose', function(pose, edge){
+		if(edge) $('#pose').html(pose);
+
+		if(pose == 'fist' || pose == 'thumb_to_pinky'){
+			smashHold = edge;
+		}
+	});
+
+
+	Myo.on('unlock', function(){
+		Myo.vibrate('short').vibrate('short');
+		console.log('unlocked');
+	})
+
+	Myo.on('lock', function(){
+		Myo.vibrate('medium');
+		console.log('locked');
+	})
+
+	Myo.on('thumb_to_pinky', function(edge){
+		/*hasFist = edge;
+		if(!Myo.isLocked || Myo.armIsBusy) return;
+
+		if(edge) Myo.vibrate('short');
+
+		Myo.timer(edge, 500, function(){
+			Myo.unlock(2000);
+		});
+*/
+		
+	});
+	
+	
+	Myo.on('fist', function(edge){
+		hasFist = edge;
+		if(!Myo.isLocked || Myo.armIsBusy) return;
+
+		//if(edge) Myo.vibrate('short');
+
+		//Myo.timer(edge, 500, function(){
+		//	Myo.unlock(2000);
+		//});
+			if (wave_in==1){
+	var center=map.center;
+			panorama.setZoom(panorama.zoom-1);
+			
+			wave_in=0;
+			} else {
+				wave_in++;
+			}
+			
+
+		
+	});
+	
+		Myo.on('spread', function(edge){
+	//Myo.unlock();
+		if (wave_out==1){
+			panorama.setZoom(panorama.zoom+1);
+			
+			//Myo.lock();
+			wave_out=0;
+			} else {
+				wave_out++;
+			}
+			//moveForward();
+	});
+	
+	
+
+	Myo.on('wave_in', function(edge){
+	//Myo.unlock();
+	moveForward();
+			
+	});
+Myo.on('wave_out', function(edge){
+	var center=map.center;
+moveForward();
+	});
+
+	Myo.on('double_tap', function(){
+		//alert("a");
+		takePicture();
+		Myo.zeroOrientation();
+		console.log('zero');
+
+	})
+
+
+</script>
+
+
+
+  </head>
+  <body>
+ 
+		<div id='pose'></div>
+
+   <input id="pac-input" class="controls" type="text"
+        placeholder="Enter a location">
+           <input id="pac-input-dest" class="controls" type="text"
+        placeholder="Enter a location">
+        <input type="button" value="Go!" onclick="calcRoute()" style="height:35px;width:70px">
+    <div id="map-canvas" ></div>
+    <div id="pano"></div>
+    <div id="gallary"></div>
+    <input type="button" value="Take Picture" onclick="takePicture()" style="height:35px;width:70px">
+  </body>
+  
+
+</html>
